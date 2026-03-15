@@ -1,3 +1,2 @@
-# Cloudflare Pages routing
-# Serve index.html for all routes (single page site)
-/*    /index.html   200
+# No redirects needed — Cloudflare Workers serves index.html automatically for static sites
+
