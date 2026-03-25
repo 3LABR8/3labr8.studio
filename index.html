@@ -351,6 +351,19 @@
       box-shadow: var(--glow);
       margin-bottom: 24px;
     }
+    <script src="https://cdn.jsdelivr.net/npm/hls.js@latest"></script>
+<video id="video" controls></video>
+<script>
+  const video = document.getElementById('video');
+  const src = 'http://stream.yourdomain.com/hls/stream.m3u8';
+  if (Hls.isSupported()) {
+    const hls = new Hls();
+    hls.loadSource(src);
+    hls.attachMedia(video);
+  } else if (video.canPlayType('application/vnd.apple.mpegurl')) {
+    video.src = src; // Native Safari support
+  }
+</script>
     .stream-offline { text-align: center; z-index: 1; }
     .stream-icon  { font-size: 2.8rem; margin-bottom: 14px; }
     .stream-offline strong {
