@@ -558,11 +558,12 @@
       </div>
 
       <div class="stream-embed fade-up">
-        <!-- Swap this div for an <iframe> when your stream server is ready -->
-        <div class="stream-offline">
-          <div class="stream-icon">&#128225;</div>
-          <strong>Stream Coming Soon</strong>
-          <p>Check back soon or follow our links to stay updated.</p>
+        <div style="position:relative; width:100%; background:#071212; border-radius:12px; overflow:hidden; border:1px solid var(--border); box-shadow: var(--glow);">
+          <video id="liveVideo" controls autoplay muted playsinline style="width:100%; aspect-ratio:16/9; display:block; background:#071212;"></video>
+          <div id="streamStatus" style="position:absolute; top:14px; left:14px; display:flex; align-items:center; gap:8px; background:rgba(7,18,18,0.75); backdrop-filter:blur(8px); padding:6px 12px; border-radius:20px; border:1px solid var(--border);">
+            <span id="statusDot" style="width:8px; height:8px; border-radius:50%; background:#555; display:inline-block;"></span>
+            <span id="statusText" style="font-size:0.75rem; letter-spacing:0.08em; text-transform:uppercase; color:var(--text-muted); font-family:'Syne',sans-serif; font-weight:600;">Connecting…</span>
+          </div>
         </div>
       </div>
 
@@ -673,6 +674,50 @@
     }
     updateClock();
     setInterval(updateClock, 1000);
+
+    /* ── HLS Live Player ── */
+    var hlsScript = document.createElement('script');
+    hlsScript.src = 'https://cdn.jsdelivr.net/npm/hls.js@latest';
+    hlsScript.onload = function () {
+      var video      = document.getElementById('liveVideo');
+      var statusDot  = document.getElementById('statusDot');
+      var statusText = document.getElementById('statusText');
+      var streamURL  = 'https://stream.3labr8.studio/hls/stream.m3u8';
+      var retryTimer = null;
+
+      function setStatus(live) {
+        statusDot.style.background  = live ? '#2dd4bf' : '#555';
+        statusDot.style.boxShadow   = live ? '0 0 6px #2dd4bf' : 'none';
+        statusText.style.color      = live ? 'var(--teal-light)' : 'var(--text-muted)';
+        statusText.textContent      = live ? 'Live' : 'Offline';
+      }
+
+      function startPlayer() {
+        if (Hls.isSupported()) {
+          var hls = new Hls({ liveSyncDurationCount: 3, liveMaxLatencyDurationCount: 6 });
+          hls.loadSource(streamURL);
+          hls.attachMedia(video);
+          hls.on(Hls.Events.MANIFEST_PARSED, function () {
+            setStatus(true);
+            video.play().catch(function(){});
+          });
+          hls.on(Hls.Events.ERROR, function (e, data) {
+            if (data.fatal) {
+              setStatus(false);
+              hls.destroy();
+              retryTimer = setTimeout(startPlayer, 5000);
+            }
+          });
+        } else if (video.canPlayType('application/vnd.apple.mpegurl')) {
+          video.src = streamURL;
+          video.addEventListener('loadedmetadata', function () { setStatus(true); video.play().catch(function(){}); });
+        } else {
+          statusText.textContent = 'Unsupported browser';
+        }
+      }
+      startPlayer();
+    };
+    document.head.appendChild(hlsScript);
 
     /* ── Contact form (hook up to your backend / Formspree / CF Worker) ── */
     document.getElementById('sendBtn').addEventListener('click', function () {
